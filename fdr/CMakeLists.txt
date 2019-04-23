@@ -14,5 +14,8 @@ find_package(Eigen3 3.3.4 REQUIRED NO_MODULE)
 
 set(CMAKE_CXX_STANDARD 11)
 
+add_executable(mytest test.cpp FastDR.cpp FastDR.h SurfaceFitting.cpp SurfaceFitting.h ArgsParser.h Evaluator.h Parameters.h TimeStamper.h Utilities.hpp)
+target_link_libraries(mytest ${OpenCV_LIBS} Eigen3::Eigen GCoptimization Superpixel)
+
 add_executable(fdr main.cpp FastDR.cpp FastDR.h SurfaceFitting.cpp SurfaceFitting.h ArgsParser.h Evaluator.h Parameters.h TimeStamper.h Utilities.hpp)
 target_link_libraries(fdr ${OpenCV_LIBS} Eigen3::Eigen GCoptimization Superpixel)
