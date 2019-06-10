@@ -1,6 +1,5 @@
-The data can be obtained from  
-https://drive.google.com/file/d/1W3Ea8SOGWC5xEXvEFiJWtU25RQFeza8M/view?usp=sharing
-###
-The file structure after decompressing should be    
-data/MiddV3  
-data/KITTI
+Download the evaluation part of the dataset from the following link:
+https://drive.google.com/file/d/15DYa9UOAfqhRGcwK-IR8zsblK1oyVzlx/view?usp=sharing
+
+Extract the contents into this folder so that the file structure is:
+data/liu_dataset
