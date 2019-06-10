@@ -6,51 +6,71 @@
 #include "Utilities.hpp"
 #include <opencv2/opencv.hpp>
 
-bool loadData(const std::string inputDir, cv::Mat& im0, cv::Mat& disp_WTA, cv::Mat& dispGT, cv::Mat& nonocc, Calib&calib)
+
+/**
+ * Update the invalid disparity (0 value) to a random disparity from
+ * (1,max_disp)
+ */
+void preprocess_disp(cv::Mat& disp_WTA, const int max_disp) {
+    cv::RNG rng;
+    for (int y = 0; y < disp_WTA.rows; y++)
+        for (int x = 0; x < disp_WTA.cols; x++) {
+            if (disp_WTA.at<float>(y, x) < 1)
+                disp_WTA.at<float>(y, x) = rng.operator() (max_disp - 1) + 1;
+        }
+}
+
+bool loadData(const std::string path, std::string item, cv::Mat& im0, cv::Mat& disp_WTA, cv::Mat& dispGT, cv::Mat& nonocc, Calib&calib)
 {
-    if (calib.ndisp <= 0)
-        printf("Try to retrieve ndisp from file [calib.txt].\n");
-    calib = Calib(inputDir + "calib.txt");
-    if (calib.ndisp <= 0) {
-        printf("ndisp is not speficied.\n");
-        return false;
-    }
+    // if (calib.ndisp <= 0)
+    //     printf("Try to retrieve ndisp from file [calib.txt].\n");
+    // calib = Calib(inputDir + "calib.txt");
+    // if (calib.ndisp <= 0) {
+    //     printf("ndisp is not speficied.\n");
+    //     return false;
+    // }
 
-    im0 = cv::imread(inputDir + "im0.png");
+
+    im0 = cv::imread(path + "/left_rgb/" + item + ".png");
     if (im0.empty()) {
-        printf("Image im0.png not found in\n");
-        printf("%s\n", inputDir.c_str());
+        std::cout << "RGB image not found: " << path + "/left_rgb/" + item + ".png" << std::endl;
         return false;
     }
 
-    disp_WTA = cvutils::io::read_pfm_file(inputDir + "disp0GT.pfm");
+    disp_WTA = cvutils::io::read_pfm_file(path + "/left_initial_disparity/" + item + ".pfm");
     if (disp_WTA.empty()) {
-        printf("disp_WTA.pfm is empty.\n");
+        printf("disp_WTA is empty.\n");
         return -1;
     }
-
-    dispGT = cvutils::io::read_pfm_file(inputDir + "disp0GT.pfm");
+    printf("preprocessing disp...\n");
+    double min, max;
+    cv::minMaxLoc(disp_WTA, &min, &max);
+    printf("  max: %f\n", max);
+    preprocess_disp(disp_WTA, max);//calib.ndisp);
+    printf("done\n");
+    
+    dispGT = cvutils::io::read_pfm_file(path + "/left_gt/" + item + ".pfm");
     if (dispGT.empty())
         dispGT = cv::Mat_<float>::zeros(im0.size());
 
-    nonocc = cv::imread(inputDir + "mask0nocc.png", cv::IMREAD_GRAYSCALE);
-    if (!nonocc.empty())
-        nonocc = nonocc == 255;
-    else
-        nonocc = cv::Mat_<uchar>(im0.size(), 255);
+
+    nonocc = cv::Mat_<uchar>(im0.size(), 255);
 
     return true;
 }
 
-void LiuDataset(const std::string inputDir, const std::string outputDir, const Options& options)
+void LiuDataset(const std::string path, const std::string item, const Options& options)
 {
     Parameters params = options.params;
 
     cv::Mat im0, disp_WTA, dispGT, nonocc;
     Calib calib;
 
-    calib.ndisp = options.ndisp;
-    if (!loadData(inputDir, im0, disp_WTA, dispGT, nonocc, calib))
+    std::cout << "  path is " << path << std::endl;
+    std::cout << "  item is " << item << std::endl;
+
+    calib.ndisp = 256;
+    if (!loadData(path, item, im0, disp_WTA, dispGT, nonocc, calib))
         return;
 
 
@@ -58,17 +78,13 @@ void LiuDataset(const std::string inputDir, const std::string outputDir, const O
     
     int maxdisp = calib.ndisp;
     double errorThresh = 1.0;
-    if (cvutils::contains(inputDir, "trainingQ") || cvutils::contains(inputDir, "testQ"))
-        errorThresh = errorThresh / 2.0;
-    else if (cvutils::contains(inputDir, "trainingF") || cvutils::contains(inputDir, "testF"))
-        errorThresh = errorThresh * 2.0;
 
     {
-        mkdir((outputDir + "debug").c_str(), 0755);
+        // mkdir((outputDir + "debug").c_str(), 0755);
 
-        Evaluator* eval = new Evaluator(dispGT, nonocc, "result", outputDir + "debug/");
-        eval->setErrorThreshold(errorThresh);
-        eval->start();
+        // Evaluator* eval = new Evaluator(dispGT, nonocc, "result", outputDir + "debug/");
+        // eval->setErrorThreshold(errorThresh);
+        // eval->start();
 
         FastDR fdr(im0, disp_WTA, params, maxdisp, 0);
 
@@ -76,27 +92,26 @@ void LiuDataset(const std::string inputDir, const std::string outputDir, const O
         printf("%s\n", "Begin fdr.run");
         fdr.run(labeling, refined_disp);
 
-        cvutils::io::save_pfm_file("labeling.pfm", labeling);
+        // cvutils::io::save_pfm_file("labeling.pfm", labeling);
 
-        cvutils::io::save_pfm_file(outputDir + "disp0FDR.pfm",
+        cvutils::io::save_pfm_file(path + "/left_output_sdr/" + item + ".pfm",
                                    refined_disp);
 
-        {
-            FILE* fp = fopen((outputDir + "timeFDR.txt").c_str(), "w");
-            if (fp != nullptr) {
-                fprintf(fp, "%lf\n", eval->getCurrentTime());
-                fclose(fp);
-            }
-        }
+        // {
+        //     FILE* fp = fopen((outputDir + "timeFDR.txt").c_str(), "w");
+        //     if (fp != nullptr) {
+        //         fprintf(fp, "%lf\n", eval->getCurrentTime());
+        //         fclose(fp);
+        //     }
+        // }
 
-        printf("%s\n", "Saved output.");
-        if (cvutils::contains(inputDir, "training"))
-            eval->evaluate(refined_disp, true, true);
+        // printf("%s\n", "Saved output.");
+        // if (cvutils::contains(inputDir, "training"))
+        //     eval->evaluate(refined_disp, true, true);
 
-        delete eval;
+        // delete eval;
     }
 }
-
 
 int main(int argc, const char** args) {
     std::cout << "----------- parameter settings -----------" << std::endl;
@@ -105,9 +120,9 @@ int main(int argc, const char** args) {
 
     options.loadOptionValues(parser); // lambda, seg_k, inlier_ratio
 
-    mkdir((options.outputDir).c_str(), 0755);
+    // mkdir((options.outputDir).c_str(), 0755);
 
-    printf("Running by Middlebury V3 mode.\n");
-    LiuDataset(options.targetDir + "/", options.outputDir + "/", options);
+    printf("Running Liu Dataset mode. -------------------------\n");
+    LiuDataset(options.targetDir, options.outputDir, options);
     return 0;
 }

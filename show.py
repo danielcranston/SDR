@@ -3,32 +3,41 @@ import sys
 import numpy as np
 import imageio
 
-sys.path.append('/home/dcranston/Documents/nconv')
-from utils.python_pfm import readPFM, writePFM
+from eval_utils.io import readPFM, writePFM, scale_disp
+from eval_utils.visualization import show_overview, show_plots
+from eval_utils.metrics import create_category_mask
 
 
-# a = imageio.imread('data/Test/LmidL_denseGT.png').astype('float32')
-# a = -a / 64 + 350
-# writePFM('data/Test/disp0GT.pfm', a.astype('float32'))
+if len(sys.argv) != 2: raise IOError('specify midd test or liu')
+mode = sys.argv[1]
 
-if False:
+plot = 2
+epethresh = 20
+
+if mode == 'midd':
 	gt, _      = readPFM('/home/dcranston/Documents/Exjobb/SDR/data/MiddV3/trainingH/ArtL/disp0GT.pfm')
 	init, _    = readPFM('/home/dcranston/Documents/Exjobb/SDR/data/MiddV3/trainingH/ArtL/disp_WTA.pfm')
 	rgb = imageio.imread('/home/dcranston/Documents/Exjobb/SDR/data/MiddV3/trainingH/ArtL/im0.png')
-	output, _  = readPFM('/home/dcranston/Documents/Exjobb/SDR/results/trainingH/ArtL/disp0FDR.pfm')
-else:
+	output, _  = readPFM('/home/dcranston/Documents/Exjobb/SDR/data/MiddV3/trainingH/ArtL/disp0FDR.pfm')
+elif mode == 'test':
 	gt, _      = readPFM('/home/dcranston/Documents/Exjobb/SDR/data/Test/disp0GT.pfm')
 	init, _    = readPFM('/home/dcranston/Documents/Exjobb/SDR/data/Test/disp_WTA.pfm')
 	rgb = imageio.imread('/home/dcranston/Documents/Exjobb/SDR/data/Test/im0.png')
 	output, _  = readPFM('/home/dcranston/Documents/Exjobb/SDR/results/Test/disp0FDR.pfm')
+elif mode == 'liu':
+	gt, _      = readPFM('/home/dcranston/Documents/Exjobb/SDR/data/liu_dataset/left_pair/left_gt/021.pfm')
+	init, _    = readPFM('/home/dcranston/Documents/Exjobb/SDR/data/liu_dataset/left_pair/left_initial_disparity/021.pfm')
+	rgb = imageio.imread('/home/dcranston/Documents/Exjobb/SDR/data/liu_dataset/left_pair/left_rgb/021.png')
+	output, _  = readPFM('/home/dcranston/Documents/Exjobb/SDR/data/liu_dataset/left_pair/left_output_sdr/021.pfm')
+elif mode == 'liu_sparser':
+	gt, _      = readPFM('/home/dcranston/Documents/Exjobb/SDR/data/liu_dataset/left_pair/left_gt/022.pfm')
+	init, _    = readPFM('/home/dcranston/Documents/Exjobb/SDR/data/liu_dataset/left_pair/left_initial_disparity_sparser/022.pfm')
+	rgb = imageio.imread('/home/dcranston/Documents/Exjobb/SDR/data/liu_dataset/left_pair/left_rgb/022.png')
+	output, _  = readPFM('/home/dcranston/Documents/Exjobb/SDR/data/liu_dataset/left_pair/left_output_sdr_sparser/022.pfm')
+else:
+	raise IOError('specify midd test or liu')
+epe = np.abs(output - gt) * (gt != 0)
 
-maxVal = max(init.max(), output.max())
-minVal = min(init.min(), output.min())
-
-
-
-plt.figure('init'); plt.imshow(init, vmin=minVal, vmax=maxVal)
-plt.figure('gt'); plt.imshow(gt, vmin=minVal, vmax=maxVal)
-plt.figure('output'); plt.imshow(output, vmin=minVal, vmax=maxVal)
-plt.figure('rgb'); plt.imshow(rgb)
-plt.show()
+comb, cmap = create_category_mask(init, gt)
+if plot == 1: show_overview(init, gt, output, epe, rgb, comb, cmap, epethresh, title='', saveDir=False, show_now=True)
+if plot == 2: show_plots(init, gt, output, epe, rgb, comb, cmap, epethresh)

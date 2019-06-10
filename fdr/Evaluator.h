@@ -33,7 +33,7 @@ public:
 		return saveDir;
 	}
 
-	Evaluator(cv::Mat dispGT, cv::Mat nonoccMask, std::string header = "result", std::string saveDir = "./", bool show = true, bool print = true, bool save = true)
+	Evaluator(cv::Mat dispGT, cv::Mat nonoccMask, std::string header = "result", std::string saveDir = "./", bool show = true, bool print = true, bool save = false)
 		: dispGT(dispGT)
 		, nonoccMask(nonoccMask)
 		, saveDir(saveDir)

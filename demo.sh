@@ -20,3 +20,4 @@ ${bin} -targetDir ${datasetroot}/MiddV3/trainingH/Recycle -outputDir ${resultsro
 ${bin} -targetDir ${datasetroot}/MiddV3/trainingH/Shelves -outputDir ${resultsroot}/Shelves -mode MiddV3 -lambda 0.30 -seg_k 30.0 -inlier_ratio 0.50
 ${bin} -targetDir ${datasetroot}/MiddV3/trainingH/Teddy -outputDir ${resultsroot}/Teddy -mode MiddV3 -lambda 0.30 -seg_k 30.0 -inlier_ratio 0.50
 ${bin} -targetDir ${datasetroot}/MiddV3/trainingH/Vintage -outputDir ${resultsroot}/Vintage -mode MiddV3 -lambda 0.30 -seg_k 30.0 -inlier_ratio 0.50
+

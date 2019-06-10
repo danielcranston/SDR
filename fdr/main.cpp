@@ -36,6 +36,20 @@ cv::Mat WTAOfVolume(const cv::Mat& volume)
 	return disp_WTA;
 }
 
+
+/**
+ * Update the invalid disparity (0 value) to a random disparity from
+ * (1,max_disp)
+ */
+void preprocess_disp(cv::Mat& disp_WTA, const int max_disp) {
+    cv::RNG rng;
+    for (int y = 0; y < disp_WTA.rows; y++)
+        for (int x = 0; x < disp_WTA.cols; x++) {
+            if (disp_WTA.at<float>(y, x) < 1)
+                disp_WTA.at<float>(y, x) = rng.operator() (max_disp - 1) + 1;
+        }
+}
+
 /**
  * Filling the left (right) part of the cost volume
  */
@@ -90,8 +104,14 @@ bool loadData(const std::string inputDir, cv::Mat& im0, cv::Mat& disp_WTA, cv::M
 		disp_WTA = WTAOfVolume(vol);
 		cvutils::io::save_pfm_file(inputDir + "disp_WTA.pfm", disp_WTA);
 	}
-
-	dispGT = cvutils::io::read_pfm_file(inputDir + "disp0GT.pfm");
+    printf("preprocessing disp...\n");
+    double min, max;
+    cv::minMaxLoc(disp_WTA, &min, &max);
+    printf("  max: %f\n", max);
+    preprocess_disp(disp_WTA, max);//calib.ndisp);
+    printf("done\n");
+	
+    dispGT = cvutils::io::read_pfm_file(inputDir + "disp0GT.pfm");
 	if (dispGT.empty())
 		dispGT = cv::Mat_<float>::zeros(im0.size());
 
@@ -160,18 +180,6 @@ void MidV3(const std::string inputDir, const std::string outputDir, const Option
     }
 }
 
-/**
- * Update the invalid disparity (0 value) to a random disparity from
- * (1,max_disp)
- */
-void preprocess_disp(cv::Mat& disp_WTA, const int max_disp) {
-	cv::RNG rng;
-	for (int y = 0; y < disp_WTA.rows; y++)
-		for (int x = 0; x < disp_WTA.cols; x++) {
-			if (disp_WTA.at<float>(y, x) < 1)
-				disp_WTA.at<float>(y, x) = rng.operator() (max_disp - 1) + 1;
-		}
-}
 
 /**
  * Processing KITTI
