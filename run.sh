@@ -4,7 +4,7 @@ datasetroot="$(pwd)/data"
 
 echo ${bin}
 
-for pair in middle_pair right_pair #left_pair #middle_pair right_pair
+for pair in left_pair middle_pair right_pair
 do
 	for i in $(seq 21 25);
 	do
